@@ -3,7 +3,7 @@
 # $FreeBSD: /c/ncvs/CVSROOT/log_accum.pl,v 1.73 2001/05/07 20:31:12 joe Exp $
 #
 # Perl filter to handle the log messages from the checkin of files in
-# a directory.	This script will group the lists of files by log
+# a directory.  This script will group the lists of files by log
 # message, and mail a single consolidated log message at the end of
 # the commit.
 #
@@ -21,7 +21,7 @@
 #
 
 #
-# $Id: log_accum.pl,v 1.1 2001-10-09 04:06:25 aegis Exp $
+# $Id: log_accum.pl,v 1.2 2001-12-03 20:47:25 aegis Exp $
 #
 
 require 5.005;		# might work with older perl5
@@ -47,7 +47,7 @@ my $RCSIDINFO = 2;
 my $DEBUG = 0;
 
 # The command used to mail the log messages.  Usually something
-# like '/usr/sbin/sendmail'.
+# like '/usr/sbin/sendmail'.  
 my $MAILCMD = "/usr/local/bin/mailsend -H";
 $MAILCMD = "/usr/lib/sendmail -odb -oem -t";
 
@@ -87,32 +87,33 @@ my $FILE_PREFIX = "#cvs.files";
 #}
 
 $MAILADDRS = 'wintarball-commits@lists.sourceforge.net';
+$PROJECT = 'wintarball';
 
 ############################################################
 #
 # Constants
 #
 ############################################################
-my $STATE_NONE	  = 0;
+my $STATE_NONE    = 0;
 my $STATE_CHANGED = 1;
 my $STATE_ADDED   = 2;
 my $STATE_REMOVED = 3;
-my $STATE_LOG	  = 4;
+my $STATE_LOG     = 4;
 
-my $BASE_FN	  = "$TMPDIR/$FILE_PREFIX";
-my $LAST_FILE	  = "$BASE_FN.lastdir";
+my $BASE_FN       = "$TMPDIR/$FILE_PREFIX";
+my $LAST_FILE     = "$BASE_FN.lastdir";
 my $CHANGED_FILE  = "$BASE_FN.changed";
-my $ADDED_FILE	  = "$BASE_FN.added";
+my $ADDED_FILE    = "$BASE_FN.added";
 my $REMOVED_FILE  = "$BASE_FN.removed";
-my $LOG_FILE	  = "$BASE_FN.log";
+my $LOG_FILE      = "$BASE_FN.log";
 my $SUMMARY_FILE  = "$BASE_FN.summary";
-my $MAIL_FILE	  = "$BASE_FN.mail";
-my $SUBJ_FILE	  = "$BASE_FN.subj";
-my $TAGS_FILE	  = "$BASE_FN.tags";
+my $MAIL_FILE     = "$BASE_FN.mail";
+my $SUBJ_FILE     = "$BASE_FN.subj";
+my $TAGS_FILE     = "$BASE_FN.tags";
 
 my $X_BRANCH_HDR  = "X-ISUGameDev-CVS-Branch:";
 
-my $CVSROOT	  = $ENV{'CVSROOT'} || "/cvsroot/isugamedev";
+my $CVSROOT       = $ENV{'CVSROOT'} || "/cvsroot/$PROJECT";
 
 my $PID = getpgrp();		# Process id; used for generating filenames.
 
@@ -130,9 +131,9 @@ BEGIN {
 
 # for the convenience of &wanted calls, including -eval statements:
 use vars qw/*name *dir *prune/;
-*name	= *File::Find::name;
-*dir	= *File::Find::dir;
-*prune	= *File::Find::prune;
+*name   = *File::Find::name;
+*dir    = *File::Find::dir;
+*prune  = *File::Find::prune;
 
 sub print_exit_message {
     print "** NOTE: Add entry to ChangeLog for major changes **\n";
@@ -141,7 +142,7 @@ sub print_exit_message {
 sub cleanup_lockfiles {
     my $base_dir = (split(/\s/, "$ARGV[0]"))[0];
     my $module = (split('/', "$base_dir"))[0];
-    print "Cleaing up garbage CVS locks in $module...\n";
+    print "Cleaning up garbage CVS locks in $module...\n";
     File::Find::find({wanted => \&wanted}, "$CVSROOT/$module");
 }
 
@@ -150,10 +151,10 @@ sub wanted {
 
     /^#cvs.*\z/s &&
     (
-	(($dev,$ino,$mode,$nlink,$uid,$gid) = lstat($_)) &&
-	-f _
-	||
-	-d _
+        (($dev,$ino,$mode,$nlink,$uid,$gid) = lstat($_)) &&
+        -f _
+        ||
+        -d _
     ) &&
     (-M _ > 0.08) &&
     ($uid == $<) &&
@@ -162,10 +163,10 @@ sub wanted {
 
 sub handle {
     if ( -d "$name" ) {
-	doexec(0, 'rmdir', '{}');
+        doexec(0, 'rmdir', '{}');
     }
     else {
-	unlink("$name") || warn "$name: $!\n";
+        unlink("$name") || warn "$name: $!\n";
     }
 }
 
@@ -173,13 +174,13 @@ sub doexec {
     my $ok = shift;
     my(@cmd) = @_;
     for my $word (@cmd)
-	{ $word =~ s#{}#$name#g }
+        { $word =~ s#{}#$name#g }
     if ($ok) {
-	my $old = select(STDOUT);
-	$| = 1;
-	print "@cmd";
-	select($old);
-	return 0 unless <STDIN> =~ /^y/;
+        my $old = select(STDOUT);
+        $| = 1;
+        print "@cmd";
+        select($old);
+        return 0 unless <STDIN> =~ /^y/;
     }
     chdir $cwd; #sigh
     print "@cmd\n";
@@ -255,7 +256,7 @@ sub read_logfile {
 # Write a list to a file.
 sub write_logfile {
 	my $filename = shift;	# File to write to.
-	my @lines = @_; 	# Contents to write to file.
+	my @lines = @_;		# Contents to write to file.
 
 	open FILE, ">$filename" or
 	    die "Cannot open for write log file $filename.";
@@ -271,7 +272,7 @@ sub format_names {
 	my $indent = length($dir);
 	$indent = 20 if $indent < 20;
 
-	my $format = "	  %-" . sprintf("%d", $indent) . "s ";
+	my $format = "    %-" . sprintf("%d", $indent) . "s ";
 
 	my @lines = (sprintf($format, $dir));
 
@@ -421,7 +422,7 @@ sub build_header {
 sub mlist_map {
 	my $dir = shift;	# Directory name
 
-	 # mail these people only if a certain dir is accessed.
+         # mail these people only if a certain dir is accessed.
 	if ( $dir =~ /^vpr/ ) {
 		#$MAILADDRS .= ', dummy_noname@iastate.edu';
 	}
@@ -443,7 +444,7 @@ sub mlist_map {
 	return 'cvs-games'	if $dir =~ /^games\//;
 	return 'cvs-gnu'	if $dir =~ /^gnu\//;
 	return 'cvs-include'	if $dir =~ /^include\//;
-	return 'cvs-kerberosIV' if $dir =~ /^kerberosIV\//;
+	return 'cvs-kerberosIV'	if $dir =~ /^kerberosIV\//;
 	return 'cvs-lib'	if $dir =~ /^lib\//;
 	return 'cvs-libexec'	if $dir =~ /^libexec\//;
 	return 'cvs-lkm'	if $dir =~ /^lkm\//;
@@ -519,7 +520,7 @@ sub mail_notification {
 				}
 
 				# rfc822 continuation line
-				$subject = "	    ";
+				$subject = "        ";
 				$subjwords = 0;
 				$subjlines++;
 			}
@@ -592,7 +593,7 @@ sub format_summaries {
 
 		if ( $minor_rev > 1 ) {
 			my $old_minor_rev = $minor_rev - 1;
-			push(@text, "http://cvs.sourceforge.net/cgi-bin/viewcvs.cgi/isugamedev/$files[$rev].diff?r1=$major_rev.$old_minor_rev\&r2=$revs[$rev]");
+			push(@text, "http://cvs.sourceforge.net/cgi-bin/viewcvs.cgi/$PROJECT/$files[$rev].diff?r1=$major_rev.$old_minor_rev\&r2=$revs[$rev]");
 		}
 	}
 
@@ -651,7 +652,7 @@ if ($ARGV[0] =~ /New directory/) {
 }
 
 #
-# Check for an import command.	This will always appear as a
+# Check for an import command.  This will always appear as a
 # single item in the argument list, and a log message.
 #
 if ($ARGV[0] =~ /Imported sources/) {
@@ -660,7 +661,7 @@ if ($ARGV[0] =~ /Imported sources/) {
 	push(@text, "  ".$ARGV[0]);
 
 	while (<STDIN>) {
-		chop;			# Drop the newline
+		chop;                   # Drop the newline
 		push(@text, "  ".$_);
 	}
 
@@ -688,7 +689,7 @@ while (<STDIN>) {
 
 	# parse the revision tag if it exists.
 	if (/^Revision\/Branch:(.*)/)	{ $tag = $1;	 next; }
-	if (/^[ \t]+Tag: (.*)/) 	{ $tag = $1;	 next; }
+	if (/^[ \t]+Tag: (.*)/)		{ $tag = $1;	 next; }
 	if (/^[ \t]+No tag$/)		{ $tag = "HEAD"; next; }
 
 	# check for a state change, guarding against similar markers
@@ -718,14 +719,14 @@ while (<STDIN>) {
 
 	# otherwise collect information about which files changed.
 	my @files = split;
-	push @{ $changed_files{$tag} }, @files if $state == $STATE_CHANGED;
+	push @{ $changed_files{$tag} },	@files if $state == $STATE_CHANGED;
 	push @{ $added_files{$tag} },	@files if $state == $STATE_ADDED;
-	push @{ $removed_files{$tag} }, @files if $state == $STATE_REMOVED;
+	push @{ $removed_files{$tag} },	@files if $state == $STATE_REMOVED;
 }
 &append_line("$TAGS_FILE.$PID", $tag);
 
 #
-# Strip leading and trailing blank lines from the log message.	Also
+# Strip leading and trailing blank lines from the log message.  Also
 # compress multiple blank lines in the body of the message down to a
 # single blank line.
 # (Note, this only does the mail and changes log, not the rcs log).
