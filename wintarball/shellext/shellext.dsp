@@ -122,6 +122,14 @@ SOURCE=..\common\Configuration.hpp
 # End Source File
 # Begin Source File
 
+SOURCE=.\Files.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\Files.hpp
+# End Source File
+# Begin Source File
+
 SOURCE=.\Progress.hpp
 # End Source File
 # Begin Source File
