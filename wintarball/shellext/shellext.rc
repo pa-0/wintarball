@@ -104,13 +104,6 @@ END
 #endif    // APSTUDIO_INVOKED
 
 
-/////////////////////////////////////////////////////////////////////////////
-//
-// AVI
-//
-
-IDR_DECOMPRESS          AVI     DISCARDABLE     "decompress.avi"
-IDR_COMPRESS            AVI     DISCARDABLE     "compress.avi"
 #endif    // English (U.S.) resources
 /////////////////////////////////////////////////////////////////////////////
 

@@ -146,14 +146,6 @@ SOURCE=.\ShellExtension.hpp
 # PROP Default_Filter "ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe"
 # Begin Source File
 
-SOURCE=.\compress.avi
-# End Source File
-# Begin Source File
-
-SOURCE=.\decompress.avi
-# End Source File
-# Begin Source File
-
 SOURCE=.\menu_icon.bmp
 # End Source File
 # Begin Source File
