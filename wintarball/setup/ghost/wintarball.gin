@@ -1,0 +1,5 @@
+[Config]
+ImagePath=image
+ExeName=wtbsetup
+Password=
+UpdateVersionInfo=1
