@@ -1,0 +1,40 @@
+HKCR {
+    '*' {
+        'shellex' {
+            'ContextMenuHandlers' {
+                'WinTarBall' = s '{FA78FD00-4ED3-11d4-83CC-00609717727E}'
+            }
+        }
+    }
+
+    '.bz2' = s 'bzip2'
+    '.gz' = s 'gzip'
+
+    'bzip2' = s 'bzip2 Archive' {
+        'DefaultIcon' = s '%MODULE%,-1'
+    }
+
+    'gzip' = s 'gzip Archive' {
+        'DefaultIcon' = s '%MODULE%,-1'
+    }
+
+    'Directory' {
+        'shellex' {
+            'ContextMenuHandlers' {
+                WinTarBall = s '{FA78FD00-4ED3-11d4-83CC-00609717727E}'
+            }
+        }
+    }
+
+    'CLSID' {
+        '{FA78FD00-4ED3-11d4-83CC-00609717727E}' = s 'WinTarBall' {
+            'InprocServer32' = s '%MODULE%' {
+                val 'ThreadingModel' = s 'Apartment'
+            }
+
+            'shellex' {
+                'MayChangeDefaultMenu'
+            }
+        }
+    }
+}
