@@ -37,18 +37,33 @@ public:
     END_COM_MAP()
 
     // IShellExtInit
-    STDMETHOD(Initialize)(LPCITEMIDLIST folder, LPDATAOBJECT object, HKEY key);
+    STDMETHOD(Initialize)(
+        LPCITEMIDLIST folder,
+        LPDATAOBJECT object,
+        HKEY key);
 
     // IContextMenu (in order of execution)
-    STDMETHOD(QueryContextMenu)(HMENU menu, UINT index, UINT first, UINT last, UINT flags);
-    STDMETHOD(GetCommandString)(UINT command, UINT flags, UINT* reserved, LPSTR name, UINT maxchars);
-    STDMETHOD(InvokeCommand)(LPCMINVOKECOMMANDINFO ici);
+    STDMETHOD(QueryContextMenu)(
+        HMENU menu,
+        UINT index,
+        UINT first,
+        UINT last,
+        UINT flags);
+    STDMETHOD(GetCommandString)(
+        UINT command,
+        UINT flags,
+        UINT* reserved,
+        LPSTR name,
+        UINT maxchars);
+    STDMETHOD(InvokeCommand)(
+        LPCMINVOKECOMMANDINFO ici);
 
 private:
-    enum { MAX_COMMANDS = 2 };
+    enum { MAX_COMMANDS = 3 };
 
     enum TargetType {
         FOLDER,
+        TARBALL,
         BZ_BALL,
         GZ_BALL,
         BZ_FILE,
@@ -58,10 +73,12 @@ private:
     };
 
     enum Command {
+        COMPRESS_TARBALL,
         COMPRESS_BZBALL,
         COMPRESS_GZBALL,
         COMPRESS_BZFILE,
         COMPRESS_GZFILE,
+        DECOMPRESS_TARBALL,
         DECOMPRESS_BZBALL,
         DECOMPRESS_GZBALL,
         DECOMPRESS_BZFILE,
@@ -69,15 +86,25 @@ private:
         NO_COMMAND,
     };
 
-    struct ThreadParameters {
+    struct WorkerThreadParameters {
         Command                command;
         std::list<std::string> paths;
+    };
+
+    struct UIThreadParameters {
+        DWORD parent_thread_id;
     };
 
 private:
     void DetermineTargetType();
     TargetType GetTargetType(const char* path);
     static DWORD WINAPI WorkerThread(LPVOID parameter);
+    static DWORD WINAPI UIThread(LPVOID parameter);
+    static BOOL CALLBACK UIDialogProc(
+        HWND dialog,
+        UINT message,
+        WPARAM wparam,
+        LPARAM lparam);
 
 private:
     static const char* s_verbs[NO_COMMAND];

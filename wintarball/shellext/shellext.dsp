@@ -122,6 +122,18 @@ SOURCE=..\common\Configuration.hpp
 # End Source File
 # Begin Source File
 
+SOURCE=.\DirectoryState.hpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\ExtensionCompare.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\ExtensionCompare.hpp
+# End Source File
+# Begin Source File
+
 SOURCE=.\Files.cpp
 # End Source File
 # Begin Source File
@@ -130,7 +142,7 @@ SOURCE=.\Files.hpp
 # End Source File
 # Begin Source File
 
-SOURCE=.\Progress.hpp
+SOURCE=.\IUINotification.hpp
 # End Source File
 # Begin Source File
 
@@ -148,6 +160,14 @@ SOURCE=.\ShellExtension.cpp
 
 SOURCE=.\ShellExtension.hpp
 # End Source File
+# Begin Source File
+
+SOURCE=.\TransformFile.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\TransformFile.hpp
+# End Source File
 # End Group
 # Begin Group "Resources"
 
@@ -155,6 +175,10 @@ SOURCE=.\ShellExtension.hpp
 # Begin Source File
 
 SOURCE=.\menu_icon.bmp
+# End Source File
+# Begin Source File
+
+SOURCE=.\resource.h
 # End Source File
 # Begin Source File
 

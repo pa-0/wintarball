@@ -7,14 +7,13 @@ HKCR {
         }
     }
 
-    '.bz2' = s 'bzip2'
-    '.gz' = s 'gzip'
+    '.bz2' = s 'wtbfile'
+    '.gz' = s 'wtbfile'
+    '.tgz' = s 'wtbfile'
+    '.tbz' = s 'wtbfile'
+    '.tar' = s 'wtbfile'
 
-    'bzip2' = s 'bzip2 Archive' {
-        'DefaultIcon' = s '%MODULE%,-1'
-    }
-
-    'gzip' = s 'gzip Archive' {
+    'wtbfile' = s 'WinTarBall Archive' {
         'DefaultIcon' = s '%MODULE%,-1'
     }
 

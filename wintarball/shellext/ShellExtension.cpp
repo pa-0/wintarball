@@ -3,16 +3,22 @@
 #include <memory>
 #include <stdio.h>
 #include "ShellExtension.hpp"  // includes <windows.h>
+#include "DirectoryState.hpp"
+#include "ExtensionCompare.hpp"
 #include "Files.hpp"
+#include "IUINotification.hpp"
+#include "TransformFile.hpp"
 #include "../common/Configuration.hpp"
 #include "resource.h"
 
 
 const char* ShellExtension::s_verbs[ShellExtension::NO_COMMAND] = {
+    "compress_tarball",
     "compress_bzball",
     "compress_gzball",
     "compress_bzfile",
     "compress_gzfile",
+    "decompress_tarball",
     "decompress_bzball",
     "decompress_gzball",
     "decompress_bzfile",
@@ -108,6 +114,14 @@ ShellExtension::QueryContextMenu(
             *q++ = COMPRESS_BZBALL;
             *p++ = "Compress Folder to .tar.gz";
             *q++ = COMPRESS_GZBALL;
+            *p++ = "Compress Folder to .tar";
+            *q++ = COMPRESS_TARBALL;
+            break;
+        }
+
+        case TARBALL: {
+            *p++ = "Decompress Folder";
+            *q++ = DECOMPRESS_TARBALL;
             break;
         }
 
@@ -192,10 +206,12 @@ ShellExtension::GetCommandString(
 
     // corresponds to m_command enum values
     static const char* help_strings[NO_COMMAND] = {
+        "Compresses directory into a .tar file.",
         "Compresses directory into a .tar.bz2 file.",
         "Compresses directory into a .tar.gz file.",
         "Compresses file into a .bz2 file.",
         "Compresses file into a .gz file.",
+        "Decompresses .tar file into a directory.",
         "Decompresses .tar.bz2 file into a directory.",
         "Decompresses .tar.gz file into a directory.",
         "Decompresses bzip2-compressed file.",
@@ -251,14 +267,16 @@ ShellExtension::InvokeCommand(LPCMINVOKECOMMANDINFO ici)
         return E_FAIL;
     }
 
-    ThreadParameters* p = new ThreadParameters;
-    p->command = m_available_commands[LOWORD(ici->lpVerb)];
-    p->paths   = m_paths;
+    WorkerThreadParameters* p = new WorkerThreadParameters;
+    p->command  = m_available_commands[LOWORD(ici->lpVerb)];
+    p->paths    = m_paths;
 
     DWORD thread_id;
     HANDLE thread = CreateThread(NULL, 0, WorkerThread, p, 0, &thread_id);
     if (thread != INVALID_HANDLE_VALUE) {
         CloseHandle(thread);
+    } else {
+        delete p;
     }
 
     return S_OK;
@@ -295,18 +313,16 @@ ShellExtension::DetermineTargetType()
 
 ////////////////////////////////////////////////////////////////////////////////
 
-static bool ExtensionCompare(const char* str, const char* ext) {
-    int str_len = strlen(str);
-    int ext_len = strlen(ext);
-    return (str_len >= ext_len && strcmp(str + str_len - ext_len, ext) == 0);
-}
-
 ShellExtension::TargetType
 ShellExtension::GetTargetType(const char* path)
 {
     if (GetFileAttributes(path) & FILE_ATTRIBUTE_DIRECTORY) {
 
         return FOLDER;
+
+    } else if (ExtensionCompare(path, ".tar")) {
+    
+        return TARBALL;
 
     } else if (ExtensionCompare(path, ".tar.bz2") ||
                ExtensionCompare(path, ".tbz")) {
@@ -335,166 +351,12 @@ ShellExtension::GetTargetType(const char* path)
 
 ////////////////////////////////////////////////////////////////////////////////
 
-static bool exists(const char* filename) {
-    FILE* f = fopen(filename, "rb");
-    if (f) {
-        fclose(f);
-        return true;
-    } else {
-        return false;
-    }
-}
-
-////////////////////////////////////////////////////////////////////////////////
-
-typedef void (*FilenameTransform)(std::string& output_name, const char* source);
-
-static void Bzip2FilenameTransform(
-    std::string& output_name,
-    const char* source)
-{
-    output_name = source;
-    output_name += ".bz2";
-}
-
-static void Unbzip2FilenameTransform(
-    std::string& output_name,
-    const char* source)
-{
-    if (ExtensionCompare(source, ".bz2")) {
-        output_name = source;
-        output_name.resize(output_name.length() - 4);
-    } else {
-        output_name = source;
-        output_name += ".unbz2";
-    }
-}
-
-static void GzipFilenameTransform(
-    std::string& output_name,
-    const char* source)
-{
-    output_name = source;
-    output_name += ".gz";
-}
-
-static void UngzipFilenameTransform(
-    std::string& output_name,
-    const char* source)
-{
-    if (ExtensionCompare(source, ".gz")) {
-        output_name = source;
-        output_name.resize(output_name.length() - 3);
-    } else {
-        output_name = source;
-        output_name += ".ungz";
-    }
-}
-
-////////////////////////////////////////////////////////////////////////////////
-
-void DoTransformFile(
-    const char* filename,
-    FilenameTransform fn_transform,
-    InputFactory input_factory,
-    OutputFactory output_factory)
-{
-    static const int BUFFER_SIZE = 4096;
-
-    std::string output_name;
-    fn_transform(output_name, filename);
-    if (exists(output_name.c_str())) {
-        if (MessageBox(NULL, "File already exists, overwrite?", "WinTarBall", MB_YESNO | MB_ICONQUESTION) == IDNO) {
-            return;
-        }
-    }
-
-    std::auto_ptr<IInputFile> in(input_factory(filename));
-    if (!in.get()) {
-        MessageBox(NULL, "Can't open input file.", "WinTarBall", MB_OK | MB_ICONERROR);
-        return;
-    }
-
-    std::auto_ptr<IOutputFile> out(output_factory(output_name.c_str()));
-    if (!out.get()) {
-        MessageBox(NULL, "Can't open output file.", "WinTarBall", MB_OK | MB_ICONERROR);
-        return;
-    }
-
-    char buffer[BUFFER_SIZE];
-    bool done = false;
-    while (!done) {
-    
-        int read = in->Read(buffer, BUFFER_SIZE);
-        int sent = out->Write(buffer, read);
-
-        if (sent != read) {
-            MessageBox(NULL, "Can't write to file.", "WinTarBall", MB_OK | MB_ICONERROR);
-            done = true;
-        } else {
-            done = (read != BUFFER_SIZE);
-        }
-    }
-}
-
-////////////////////////////////////////////////////////////////////////////////
-
-struct Transform {
-    FilenameTransform filename_transform;
-    InputFactory      input_factory;
-    OutputFactory     output_factory;
-};
-
-struct Bzip2Transform : Transform {
-    Bzip2Transform() {
-        filename_transform = Bzip2FilenameTransform;
-        input_factory      = OpenANSIInputFile;
-        output_factory     = OpenBzip2OutputFile;
-    }
-};
-
-struct Unbzip2Transform : Transform {
-    Unbzip2Transform() {
-        filename_transform = Unbzip2FilenameTransform;
-        input_factory      = OpenBzip2InputFile;
-        output_factory     = OpenANSIOutputFile;
-    }
-};
-
-struct GzipTransform : Transform {
-    GzipTransform() {
-        filename_transform = GzipFilenameTransform;
-        input_factory      = OpenANSIInputFile;
-        output_factory     = OpenGzipOutputFile;
-    }
-};
-
-struct UngzipTransform : Transform {
-    UngzipTransform() {
-        filename_transform = UngzipFilenameTransform;
-        input_factory      = OpenGzipInputFile;
-        output_factory     = OpenANSIOutputFile;
-    }
-};
-
-// we need the second parameter because VC++ sucks :(
-template<typename transform>
-void TransformFile(const char* filename, transform t = transform())
-{
-    DoTransformFile(
-        filename,
-        t.filename_transform,
-        t.input_factory,
-        t.output_factory);
-}
-
-////////////////////////////////////////////////////////////////////////////////
-
-void BuildFileList(const char* folder, std::list<std::string>& files)
+static void BuildFileList(const char* folder, std::list<std::string>& files)
 {
     // go to the new directory, storing the old
-    char old_directory[MAX_PATH];
-    GetCurrentDirectory(MAX_PATH, old_directory);
+    DirectoryState ds__;
+
+    // go to the new directory
     if (!SetCurrentDirectory(folder)) {
         return;
     }
@@ -539,8 +401,6 @@ void BuildFileList(const char* folder, std::list<std::string>& files)
 
         FindClose(find);
     }
-
-    SetCurrentDirectory(old_directory);
 }
 
 void CreateArchive(const char* folder, OutputFactory output_factory)
@@ -574,14 +434,14 @@ struct posix_header
                                 /* 500 */
 };
 
-#define BLOCKSIZE 512
+static const int BLOCKSIZE = 512;
 
 union block {
     char buffer[BLOCKSIZE];
     posix_header header;
 };
 
-int octal_to_int(char* o, int size) {
+static int octal_to_int(char* o, int size) {
     int result = 0;
     while (--size) {
         char c = *o++;
@@ -591,54 +451,41 @@ int octal_to_int(char* o, int size) {
     return result;
 }
 
-struct DirectoryState {
-    char directory[MAX_PATH];
+static FILE* OpenOutputFile(const char* filename)
+{
+    DirectoryState* ds__ = new DirectoryState;
 
-    DirectoryState() {
-        GetCurrentDirectory(MAX_PATH, directory);
-    }
+    char* buffer = new char[strlen(filename) + 1];
+    strcpy(buffer, filename);
 
-    ~DirectoryState() {
-        SetCurrentDirectory(directory);
-    }
-};
-
-FILE* OpenOutputFile(const char* filename) {
-    {
-        DirectoryState ds__;
-
-        char* buffer = new char[strlen(filename) + 1];
-        strcpy(buffer, filename);
-
-        char* f = buffer;
-        while (*f) {
-            char* g = f;
-            while (*g != 0 && *g != '/' && *g != '\\') {
-                g++;
-            }
-
-            if (*g == 0) {
-                break;
-            } else {
-                *g = 0;
-
-                CreateDirectory(f, NULL);
-                if (!SetCurrentDirectory(f)) {
-                    delete[] buffer;
-                    return NULL;
-                }
-
-                f = g + 1;
-            }
+    char* f = buffer;
+    while (*f) {
+        char* g = f;
+        while (*g != 0 && *g != '/' && *g != '\\') {
+            g++;
         }
 
-        delete[] buffer;
+        if (*g == 0) {
+            break;
+        } else {
+            *g = 0;
+
+            CreateDirectory(f, NULL);
+            if (!SetCurrentDirectory(f)) {
+                delete[] buffer;
+                return NULL;
+            }
+
+            f = g + 1;
+        }
     }
 
+    delete[] buffer;
+    delete ds__;
     return fopen(filename, "wb");
 }
 
-void ExtractArchive(const char* archive, InputFactory input_factory)
+static void ExtractArchive(const char* archive, InputFactory input_factory)
 {
     DirectoryState ds__;
 
@@ -666,8 +513,6 @@ void ExtractArchive(const char* archive, InputFactory input_factory)
         MessageBox(NULL, "Error", "WinTarBall", MB_OK);
         return;
     }
-
-//    __asm int 3
 
     block b;
     while (true) {
@@ -753,72 +598,315 @@ void ExtractArchive(const char* archive, InputFactory input_factory)
                 fclose(ofile);
             }
         }
+    }
+}
 
-//        char str[1024];
-//        sprintf(str, "%s\n%c\n%s", b.header.name, b.header.typeflag, b.header.linkname);
-//        MessageBox(NULL, filename.c_str(), "WinTarBall", MB_OK);
+////////////////////////////////////////////////////////////////////////////////
+
+// UN = User interface Notification
+static const int UN_YESNOCANCEL = WM_APP + 0;
+static const int UN_YESNO       = WM_APP + 1;
+static const int UN_MESSAGE     = WM_APP + 2;
+static const int UN_PROGRESS    = WM_APP + 3;
+static const int UN_RESULT      = WM_APP + 4;
+static const int UN_CANCEL      = WM_APP + 5;
+
+struct UI_MESSAGE {
+    DWORD calling_thread_id;
+    const char* message;
+    UIIcon icon;
+};
+
+class UINotification : public IUINotification
+{
+public:
+    UINotification(DWORD thread_id) {
+        m_thread_id = thread_id;
+        m_should_cancel = false;
+
+        // force creation of a message queue in this thread
+        MSG msg;
+        PeekMessage(&msg, NULL, WM_USER, WM_USER, PM_NOREMOVE);
     }
 
-    MessageBox(NULL, "Here, we'd be done extracting the archive.", "WinTarBall", MB_OK);
+    virtual UIResult YesNoCancel(const char* message, UIIcon icon) {
+        return (UIResult)DoPostMessage(UN_YESNOCANCEL, message, icon);
+    }
+
+    virtual UIResult YesNo(const char* message, UIIcon icon) {
+        return (UIResult)DoPostMessage(UN_YESNOCANCEL, message, icon);
+    }
+
+    virtual void SetMessage(const char* message) {
+        // allocate a new string and give the UI thread the responsibility of
+        // deleteing it
+        char* m = new char[strlen(message) + 1];
+        strcpy(m, message);
+
+        BOOL result;
+        do {
+            result = PostThreadMessage(
+                m_thread_id,
+                UN_MESSAGE,
+                0,
+                (LPARAM)m);
+        } while (!result);
+    }
+
+    virtual void SetProgress(int progress) {
+        BOOL result;
+        do {
+            result = PostThreadMessage(m_thread_id, UN_PROGRESS, 0, progress);
+        } while (!result);
+    }
+
+    virtual bool ShouldCancel() {
+        if (m_should_cancel) {
+            return true;
+        }
+
+        // look at all messages in the queue for a cancel message
+        MSG msg;
+        while (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE)) {
+            if (msg.message == UN_CANCEL) {
+                m_should_cancel = true;
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+private:
+    int DoPostMessage(int message, const char* str_message, UIIcon icon) {
+        UI_MESSAGE m;
+        m.calling_thread_id = GetCurrentThreadId();
+        m.message           = str_message;
+        m.icon              = icon;
+
+        BOOL result;
+        do {
+            result = PostThreadMessage(m_thread_id, message, 0, (LPARAM)&m);
+        } while (!result);
+
+        // now wait for response?
+        MSG msg;
+        while (GetMessage(&msg, NULL, 0, 0) >= 0) {
+            if (msg.message == UN_RESULT) {
+                return msg.lParam;
+            }
+        }
+
+        return 0;
+    }
+
+private:
+    DWORD m_thread_id;
+    bool  m_should_cancel;
+};
+
+DWORD WINAPI
+ShellExtension::WorkerThread(LPVOID arg)
+{
+    std::auto_ptr<WorkerThreadParameters> p((WorkerThreadParameters*)arg);
+
+    UIThreadParameters* parameters = new UIThreadParameters;
+    parameters->parent_thread_id = GetCurrentThreadId();
+
+    // create the UI thread
+    DWORD thread_id;
+    HANDLE thread = CreateThread(
+        NULL,
+        0,
+        UIThread,
+        parameters,
+        0,
+        &thread_id);
+    if (thread == INVALID_HANDLE_VALUE) {
+        delete parameters;
+        MessageBox(
+            NULL,
+            "Error: Could not create UI thread",
+            "WinTarBall",
+            MB_OK);
+        return 0;
+    }
+
+    std::auto_ptr<UINotification> notification(new UINotification(thread_id));
+    UINotification* n = notification.get();
+
+    std::list<std::string>::iterator i = p->paths.begin();
+    for (; i != p->paths.end(); ++i) {
+
+        switch (p->command) {
+            case COMPRESS_TARBALL: {
+                CreateArchive(i->c_str(), OpenANSIOutputFile);
+            } break;
+
+            case COMPRESS_BZBALL: {
+                CreateArchive(i->c_str(), OpenBzip2OutputFile);
+            } break;
+
+            case COMPRESS_GZBALL: {
+                CreateArchive(i->c_str(), OpenGzipOutputFile);
+            } break;
+
+            case COMPRESS_BZFILE: {
+                TransformFile(n, i->c_str(), Bzip2Transform);
+            } break;
+
+            case COMPRESS_GZFILE: {
+                TransformFile(n, i->c_str(), GzipTransform);
+            } break;
+
+            case DECOMPRESS_TARBALL: {
+                ExtractArchive(i->c_str(), OpenANSIInputFile);
+            } break;
+
+            case DECOMPRESS_BZBALL: {
+                ExtractArchive(i->c_str(), OpenBzip2InputFile);
+            } break;
+
+            case DECOMPRESS_GZBALL: {
+                ExtractArchive(i->c_str(), OpenGzipInputFile);
+            } break;
+
+            case DECOMPRESS_BZFILE: {
+                TransformFile(n, i->c_str(), Unbzip2Transform);
+            } break;
+
+            case DECOMPRESS_GZFILE: {
+                TransformFile(n, i->c_str(), UngzipTransform);
+            } break;
+        }
+    }
+
+    // kill the UI thread
+    bool done = false;
+    while (!done) {
+        int result = PostThreadMessage(thread_id, WM_QUIT, 0, 0);
+        if (result) {
+            done = true;
+        } else {
+            Sleep(50);
+        }
+    }
+
+    CloseHandle(thread);
+    return 0;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
 
 DWORD WINAPI
-ShellExtension::WorkerThread(LPVOID parameter)
+ShellExtension::UIThread(LPVOID arg)
 {
-    ThreadParameters* p = (ThreadParameters*)parameter;
+    std::auto_ptr<UIThreadParameters> p((UIThreadParameters*)arg);
 
-    std::list<std::string>::iterator i = p->paths.begin();
-    while (i != p->paths.end()) {
+    // create the dialog box
+    HWND dialog = CreateDialog(
+        _Module.m_hInst,
+        MAKEINTRESOURCE(IDD_PROGRESS),
+        NULL,
+        UIDialogProc);
+    if (!dialog) {
+        return 0;
+    }
 
-        switch (p->command) {
-            case COMPRESS_BZBALL: {
-                CreateArchive(i->c_str(), OpenBzip2OutputFile);
-                break;
-            }
+    // attach the parent thread ID to the dialog
+    SetWindowLong(dialog, GWL_USERDATA, p->parent_thread_id);
 
-            case COMPRESS_GZBALL: {
-                CreateArchive(i->c_str(), OpenGzipOutputFile);
-                break;
-            }
+    // message loop
+    MSG msg;
+    while (GetMessage(&msg, NULL, 0, 0) > 0) {
+        if (msg.message == UN_YESNOCANCEL) {
 
-            case COMPRESS_BZFILE: {
-                TransformFile<Bzip2Transform>(i->c_str());
-                break;
-            }
+            UI_MESSAGE* ui = (UI_MESSAGE*)msg.lParam;
+            int icon = (ui->icon == UI_ERROR ? MB_ICONERROR : MB_ICONWARNING);
+            int result = MessageBox(dialog, ui->message, "WinTarBall",
+                MB_YESNOCANCEL | icon);
 
-            case COMPRESS_GZFILE: {
-                TransformFile<GzipTransform>(i->c_str());
-                break;
-            }
+            // send the result back
+            int rv = (result == IDYES ?
+                        UI_YES :
+                        (result == IDNO ? UI_NO : IDCANCEL));
+            PostThreadMessage(ui->calling_thread_id, UN_RESULT, 0, rv);
 
-            case DECOMPRESS_BZBALL: {
-                ExtractArchive(i->c_str(), OpenBzip2InputFile);
-                break;
-            }
+        } else if (msg.message == UN_YESNO) {
 
-            case DECOMPRESS_GZBALL: {
-                ExtractArchive(i->c_str(), OpenGzipInputFile);
-                break;
-            }
+            UI_MESSAGE* ui = (UI_MESSAGE*)msg.lParam;
+            int icon = (ui->icon == UI_ERROR ? MB_ICONERROR : MB_ICONWARNING);
+            int result = MessageBox(dialog, ui->message, "WinTarBall",
+                MB_YESNO | icon);
 
-            case DECOMPRESS_BZFILE: {
-                TransformFile<Unbzip2Transform>(i->c_str());
-                break;
-            }
+            // send the result back
+            int rv = (result == IDYES ?
+                        UI_YES :
+                        (result == IDNO ? UI_NO : UI_CANCEL));
+            PostThreadMessage(ui->calling_thread_id, UN_RESULT, 0, rv);
 
-            case DECOMPRESS_GZFILE: {
-                TransformFile<UngzipTransform>(i->c_str());
-                break;
-            }
+        } else if (msg.message == UN_MESSAGE) {
+            char* message = (char*)msg.lParam;
+            SetDlgItemText(dialog, IDC_MESSAGE, message);
+            delete[] message;
+
+        } else if (msg.message == UN_PROGRESS) {
+            // set the progress bar
+            SendDlgItemMessage(
+                dialog,
+                IDC_PROGRESS,
+                PBM_SETPOS,
+                msg.lParam,
+                0);
+
+        } else if (!IsDialogMessage(dialog, &msg)) {
+            TranslateMessage(&msg);
+            DispatchMessage(&msg);
+        }
+    }
+
+    // go home
+    DestroyWindow(dialog);
+    return 0;
+}
+
+////////////////////////////////////////////////////////////////////////////////
+
+BOOL CALLBACK
+ShellExtension::UIDialogProc(
+    HWND dialog,
+    UINT message,
+    WPARAM wparam,
+    LPARAM lparam)
+{
+    switch (message) {
+        case WM_INITDIALOG: {
+            SetDlgItemText(
+                dialog,
+                IDC_MESSAGE,
+                "Processing");
+
+            SendDlgItemMessage(
+                dialog,
+                IDC_PROGRESS,
+                PBM_SETRANGE,
+                0,
+                MAKELPARAM(0, 255));
+            return TRUE;
         }
 
-        ++i;
+        case WM_COMMAND: {
+            if (LOWORD(wparam) == IDCANCEL) {
+                DWORD parent_thread_id = GetWindowLong(dialog, GWL_USERDATA);
+                PostThreadMessage(parent_thread_id, UN_CANCEL, 0, 0);
+            }
+            return TRUE;
+        }
+
+        default: {
+            return FALSE;
+        }
     }
-    
-    delete p;
-    return 0;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
