@@ -114,6 +114,7 @@ ShellExtension::QueryContextMenu(
     }
     Command* q = m_available_commands;
 
+    int default_command = -1;
     switch (m_target_type) {
         case FOLDER: {
             *p++ = "Compress Folder to .tar.bz2";
@@ -128,6 +129,7 @@ ShellExtension::QueryContextMenu(
         }
 
         case TARBALL: {
+            default_command = 0;
             *p++ = "Decompress Folder";
             *q++ = DECOMPRESS_TARBALL;
 #ifndef DISABLED_COMMANDS
@@ -140,24 +142,28 @@ ShellExtension::QueryContextMenu(
         }
 
         case BZ_BALL: {
+            default_command = 0;
             *p++ = "Decompress Folder";
             *q++ = DECOMPRESS_BZBALL;
             break;
         }
 
         case GZ_BALL: {
+            default_command = 0;
             *p++ = "Decompress Folder";
             *q++ = DECOMPRESS_GZBALL;
             break;
         }
 
         case BZ_FILE: {
+            default_command = 0;
             *p++ = "Decompress";
             *q++ = DECOMPRESS_BZFILE;
             break;
         }
 
         case GZ_FILE: {
+            default_command = 0;
             *p++ = "Decompress";
             *q++ = DECOMPRESS_GZFILE;
             break;
@@ -182,13 +188,14 @@ ShellExtension::QueryContextMenu(
     mii.cbSize = sizeof(mii);
     mii.fMask = MIIM_ID | MIIM_TYPE | MIIM_STATE;
     mii.fType = MFT_STRING;
-    mii.fState = MFS_ENABLED;  // (def ? MFS_DEFAULT : MFS_ENABLED);
 
     // add each command to the menu
     UINT id = first;
     for (char** c = commands; c != p; c++) {
         mii.wID = id;
         mii.dwTypeData = *c;
+        bool def = (default_command == c - commands);
+        mii.fState = (def ? MFS_DEFAULT : MFS_ENABLED);
 
         InsertMenuItem(menu, index, TRUE, &mii);
         SetMenuItemBitmaps(menu, index, MF_BYPOSITION, m_menu_bitmap, NULL);

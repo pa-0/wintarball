@@ -1,6 +1,6 @@
 //{{NO_DEPENDENCIES}}
 // Microsoft Developer Studio generated include file.
-// Used by WinTarBall.rc
+// Used by cpl.rc
 //
 #define IDS_NAME                        1
 #define IDS_INFO                        2
