@@ -14,6 +14,10 @@
 #include "resource.h"
 
 
+// XXXX someday add options to enable these
+#define DISABLED_COMMANDS
+
+
 const char* ShellExtension::s_verbs[ShellExtension::NO_COMMAND] = {
     "compress_tarball",
     "compress_bzball",
@@ -116,18 +120,22 @@ ShellExtension::QueryContextMenu(
             *q++ = COMPRESS_BZBALL;
             *p++ = "Compress Folder to .tar.gz";
             *q++ = COMPRESS_GZBALL;
+#ifndef DISABLED_COMMANDS
             *p++ = "Compress Folder to .tar";
             *q++ = COMPRESS_TARBALL;
+#endif
             break;
         }
 
         case TARBALL: {
             *p++ = "Decompress Folder";
             *q++ = DECOMPRESS_TARBALL;
+#ifndef DISABLED_COMMANDS
             *p++ = "Compress to .tar.bz2";
             *q++ = COMPRESS_BZFILE;
             *p++ = "Compress to .tar.gz";
             *q++ = COMPRESS_GZFILE;
+#endif
             break;
         }
 
