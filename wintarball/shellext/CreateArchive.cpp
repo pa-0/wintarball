@@ -195,6 +195,9 @@ bool CreateArchive(
 
         if (!fit_name(h, i->c_str())) {
             unprocessed_files.push_back(*i);
+            if (file) {
+                fclose(file);
+            }
             continue;
         }
 
