@@ -121,6 +121,8 @@ bool CreateArchive(
     const char* extension,
     OutputFactory output_factory)
 {
+    notify->SetMessage("Building list of files...");
+
     std::list<std::string> files;
     BuildFileList(folder, "", files);
 
