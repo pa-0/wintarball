@@ -97,7 +97,7 @@ bool ExtractArchive(
         return (r == UI_YES);
     }
 
-    std::string message_prefix = "Extracting " + basename(archive) + ": ";
+    std::string message_prefix = "Extracting '" + basename(archive) + "': ";
 
     // files that weren't written successfully
     std::list<std::string> unwritten_files;

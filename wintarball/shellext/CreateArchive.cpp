@@ -134,9 +134,7 @@ bool CreateArchive(
     archive_name += extension;
 
     // calculate the message prefix
-    std::string prefix = "Archiving: ";
-    prefix += basename(archive_name.c_str());
-    prefix += " ";
+    std::string prefix = "Archiving '" + basename(archive_name.c_str()) + "': ";
 
     // check to see if the archive already exists
     if (file_exists(archive_name.c_str())) {
@@ -249,9 +247,24 @@ bool CreateArchive(
     }
 
     // if the user cancelled, try to remove the file
-    delete out.release();
     if (cancelled) {
+        delete out.release();
         remove(archive_name.c_str());
+    } else if (unprocessed_files.size()) {
+        
+        std::string message =
+            "Could not add the following files\n"
+            "(path too big or could not open file):\n\n";
+
+        i = unprocessed_files.begin();
+        for (; i != unprocessed_files.end(); ++i) {
+            message += *i + "\n";
+        }
+
+        message += "\nContinue?";
+
+        UIResult rv = notify->YesNo(message.c_str(), UI_WARNING);
+        return (rv == UI_YES);
     }
 
     return true;

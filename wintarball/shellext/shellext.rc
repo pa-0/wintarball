@@ -80,7 +80,8 @@ STYLE DS_MODALFRAME | DS_CENTER | WS_POPUP | WS_VISIBLE | WS_CAPTION
 CAPTION "WinTarBall"
 FONT 8, "MS Sans Serif"
 BEGIN
-    LTEXT           "Static",IDC_MESSAGE,8,8,228,8
+    CONTROL         "Static",IDC_MESSAGE,"Static",SS_LEFTNOWORDWRAP | 
+                    WS_GROUP,8,8,228,8
     CONTROL         "Progress1",IDC_PROGRESS,"msctls_progress32",PBS_SMOOTH,
                     8,20,172,14
     PUSHBUTTON      "&Cancel",IDCANCEL,188,20,48,14
