@@ -10,7 +10,7 @@ struct Configuration
 
     Configuration() {
       // defaults
-      bzip2_block_size       = 5;
+      bzip2_block_size       = 9;
       bzip2_less_memory      = false;
       gzip_compression_level = 6;
     }
