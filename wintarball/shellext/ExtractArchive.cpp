@@ -59,23 +59,6 @@ static bool all_zeroes(const void* b, int size)
 
 ////////////////////////////////////////////////////////////////////////////////
 
-std::string basename(const char* c)
-{
-    const char* last_slash     = strrchr(c, '/');
-    const char* last_backslash = strrchr(c, '\\');
-    if (last_slash && last_backslash) {
-        return max(last_slash, last_backslash) + 1;
-    } else if (last_slash) {
-        return last_slash + 1;
-    } else if (last_backslash) {
-        return last_backslash + 1;
-    } else {
-        return c;
-    }
-}
-
-////////////////////////////////////////////////////////////////////////////////
-
 bool ExtractArchive(
     IUINotification* notify,
     const char* archive,

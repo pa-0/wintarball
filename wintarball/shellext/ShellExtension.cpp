@@ -126,7 +126,7 @@ ShellExtension::QueryContextMenu(
             *q++ = DECOMPRESS_TARBALL;
             *p++ = "Compress to .tar.bz2";
             *q++ = COMPRESS_BZFILE;
-            *p++ = "Decompress to .tar.gz";
+            *p++ = "Compress to .tar.gz";
             *q++ = COMPRESS_GZFILE;
             break;
         }

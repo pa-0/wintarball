@@ -14,6 +14,33 @@ bool file_exists(const char* filename) {
     }
 }
 
+long file_size(const char* filename) {
+    FILE* f = fopen(filename, "rb");
+    if (f) {
+        fseek(f, 0, SEEK_END);
+        long s = ftell(f);
+        fclose(f);
+        return s;
+    } else {
+        return 0;
+    }
+}
+
+std::string basename(const char* c)
+{
+    const char* last_slash     = strrchr(c, '/');
+    const char* last_backslash = strrchr(c, '\\');
+    if (last_slash && last_backslash) {
+        return max(last_slash, last_backslash) + 1;
+    } else if (last_slash) {
+        return last_slash + 1;
+    } else if (last_backslash) {
+        return last_backslash + 1;
+    } else {
+        return c;
+    }
+}
+
 
 
 // ANSI IMPLEMENTATION

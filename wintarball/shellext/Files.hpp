@@ -2,6 +2,7 @@
 #define FILES_HPP
 
 
+#include <string>
 #include <stdio.h>
 #include <zlib.h>
 #include <bzlib.h>
@@ -10,6 +11,8 @@
 // MISCELLANEOUS
 
 extern bool file_exists(const char* filename);
+extern long file_size(const char* filename);
+extern std::string basename(const char* c);
 
 
 // INTERFACES
