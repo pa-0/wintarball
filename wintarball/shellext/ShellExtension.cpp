@@ -415,7 +415,7 @@ void DoTransformFile(
         return;
     }
 
-    std::auto_ptr<IOutputFile> out(output_factory(filename));
+    std::auto_ptr<IOutputFile> out(output_factory(output_name.c_str()));
     if (!out.get()) {
         MessageBox(NULL, "Can't open output file.", "WinTarBall", MB_OK | MB_ICONERROR);
         return;
@@ -464,8 +464,8 @@ struct Unbzip2Transform : Transform {
 struct GzipTransform : Transform {
     GzipTransform() {
         filename_transform = GzipFilenameTransform;
-        input_factory      = OpenGzipInputFile;
-        output_factory     = OpenANSIOutputFile;
+        input_factory      = OpenANSIInputFile;
+        output_factory     = OpenGzipOutputFile;
     }
 };
 
