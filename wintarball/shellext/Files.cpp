@@ -2,6 +2,20 @@
 #include "../common/Configuration.hpp"
 
 
+// MISCELLANEOUS
+
+bool file_exists(const char* filename) {
+    FILE* f = fopen(filename, "rb");
+    if (f) {
+        fclose(f);
+        return true;
+    } else {
+        return false;
+    }
+}
+
+
+
 // ANSI IMPLEMENTATION
 
 class ANSIInputFile : public IInputFile {
@@ -32,7 +46,7 @@ public:
         fclose(m_file);
     }
 
-    virtual unsigned Write(void* buffer, unsigned size) {
+    virtual unsigned Write(const void* buffer, unsigned size) {
         return fwrite(buffer, 1, size, m_file);
     }
 
@@ -71,8 +85,10 @@ public:
         gzclose(m_file);
     }
 
-    unsigned Write(void* buffer, unsigned size) {
-        return gzwrite(m_file, buffer, size);
+    unsigned Write(const void* buffer, unsigned size) {
+        // gzwrite's got an incorrect parameter type (do to the
+        // voidp typedef, the pointer is const, not the data)
+        return gzwrite(m_file, (const voidp)buffer, size);
     }
 
 private:
@@ -110,8 +126,9 @@ public:
         BZ2_bzclose(m_file);
     }
 
-    virtual unsigned Write(void* buffer, unsigned size) {
-        return BZ2_bzwrite(m_file, buffer, size);
+    virtual unsigned Write(const void* buffer, unsigned size) {
+        // bzwrite doesn't even bother const'ing the buffer parameter...
+        return BZ2_bzwrite(m_file, (void*)buffer, size);
     }
 
 private:

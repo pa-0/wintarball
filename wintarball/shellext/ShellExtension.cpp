@@ -3,8 +3,10 @@
 #include <memory>
 #include <stdio.h>
 #include "ShellExtension.hpp"  // includes <windows.h>
+#include "CreateArchive.hpp"
 #include "DirectoryState.hpp"
 #include "ExtensionCompare.hpp"
+#include "ExtractArchive.hpp"
 #include "Files.hpp"
 #include "IUINotification.hpp"
 #include "TransformFile.hpp"
@@ -74,7 +76,7 @@ ShellExtension::Initialize(
     HDROP drop = (HDROP)medium.hGlobal;
     UINT count = DragQueryFile(drop, 0xFFFFFFFF, NULL, 0);
     for (unsigned i = 0; i < count; i++) {
-        DragQueryFile(drop, 0, path, MAX_PATH);
+        DragQueryFile(drop, i, path, MAX_PATH);
         m_paths.push_back(path);
     }
 
@@ -122,6 +124,10 @@ ShellExtension::QueryContextMenu(
         case TARBALL: {
             *p++ = "Decompress Folder";
             *q++ = DECOMPRESS_TARBALL;
+            *p++ = "Compress to .tar.bz2";
+            *q++ = COMPRESS_BZFILE;
+            *p++ = "Decompress to .tar.gz";
+            *q++ = COMPRESS_GZFILE;
             break;
         }
 
@@ -351,258 +357,6 @@ ShellExtension::GetTargetType(const char* path)
 
 ////////////////////////////////////////////////////////////////////////////////
 
-static void BuildFileList(const char* folder, std::list<std::string>& files)
-{
-    // go to the new directory, storing the old
-    DirectoryState ds__;
-
-    // go to the new directory
-    if (!SetCurrentDirectory(folder)) {
-        return;
-    }
-
-    // what directory are we in now?
-    char directory[MAX_PATH];
-    GetCurrentDirectory(MAX_PATH, directory);
-    int directory_length = strlen(directory);
-    if (directory[directory_length - 1] == '\\') {
-        directory[directory_length - 1] = 0;
-    }
-
-    // calculate the prefix to add to all files in the list
-    // if the directory is 'C:\tar', we want to add 'tar/' to all files
-    char* last_separator = strrchr(directory, '\\');
-    std::string prefix;
-    if (last_separator) {
-        prefix = last_separator + 1;
-        prefix += "/";
-    } else {
-        prefix = directory;
-    }
-
-    WIN32_FIND_DATA ffd;
-    HANDLE find = FindFirstFile("*", &ffd);
-    if (find != INVALID_HANDLE_VALUE) {
-
-        do {
-
-            if (ffd.dwFileAttributes == FILE_ATTRIBUTE_DIRECTORY) {
-                if (strcmp(ffd.cFileName, ".") != 0 &&
-                    strcmp(ffd.cFileName, "..") != 0) {
-
-                    BuildFileList(ffd.cFileName, files);
-                }
-            } else {
-                // add ffd.cFileName
-                files.push_back(prefix + ffd.cFileName);
-            }
-
-        } while (FindNextFile(find, &ffd));
-
-        FindClose(find);
-    }
-}
-
-void CreateArchive(const char* folder, OutputFactory output_factory)
-{
-    std::list<std::string> files;
-    BuildFileList(folder, files);
-
-    MessageBox(NULL, "Here, we'd be done making the archive.", "WinTarBall", MB_OK);
-}
-
-////////////////////////////////////////////////////////////////////////////////
-
-struct posix_header
-{                               /* byte offset */
-    char name[100];             /*   0 */
-    char mode[8];               /* 100 */
-    char uid[8];                /* 108 */
-    char gid[8];                /* 116 */
-    char size[12];              /* 124 */
-    char mtime[12];             /* 136 */
-    char chksum[8];             /* 148 */
-    char typeflag;              /* 156 */
-    char linkname[100];         /* 157 */
-    char magic[6];              /* 257 */
-    char version[2];            /* 263 */
-    char uname[32];             /* 265 */
-    char gname[32];             /* 297 */
-    char devmajor[8];           /* 329 */
-    char devminor[8];           /* 337 */
-    char prefix[155];           /* 345 */
-                                /* 500 */
-};
-
-static const int BLOCKSIZE = 512;
-
-union block {
-    char buffer[BLOCKSIZE];
-    posix_header header;
-};
-
-static int octal_to_int(char* o, int size) {
-    int result = 0;
-    while (--size) {
-        char c = *o++;
-        int value = (c >= '0' && c <= '7' ? c - '0' : 0);
-        result = (result * 8) + value;
-    }
-    return result;
-}
-
-static FILE* OpenOutputFile(const char* filename)
-{
-    DirectoryState* ds__ = new DirectoryState;
-
-    char* buffer = new char[strlen(filename) + 1];
-    strcpy(buffer, filename);
-
-    char* f = buffer;
-    while (*f) {
-        char* g = f;
-        while (*g != 0 && *g != '/' && *g != '\\') {
-            g++;
-        }
-
-        if (*g == 0) {
-            break;
-        } else {
-            *g = 0;
-
-            CreateDirectory(f, NULL);
-            if (!SetCurrentDirectory(f)) {
-                delete[] buffer;
-                return NULL;
-            }
-
-            f = g + 1;
-        }
-    }
-
-    delete[] buffer;
-    delete ds__;
-    return fopen(filename, "wb");
-}
-
-static void ExtractArchive(const char* archive, InputFactory input_factory)
-{
-    DirectoryState ds__;
-
-    char* archive_buffer = new char[strlen(archive) + 1];
-    strcpy(archive_buffer, archive);
-
-    char* last_slash     = strrchr(archive_buffer, '/');
-    char* last_backslash = strrchr(archive_buffer, '\\');
-    char* last = NULL;
-    if (last_slash && last_backslash) {
-        last = (last_slash > last_backslash ? last_slash : last_backslash);
-    } else if (last_slash) {
-        last = last_slash;
-    } else if (last_backslash) {
-        last = last_backslash;
-    }
-    if (last) {
-        *last = 0;
-        SetCurrentDirectory(archive_buffer);
-    }
-    delete[] archive_buffer;
-
-    std::auto_ptr<IInputFile> file(input_factory(archive));
-    if (!file.get()) {
-        MessageBox(NULL, "Error", "WinTarBall", MB_OK);
-        return;
-    }
-
-    block b;
-    while (true) {
-        int read = file->Read(&b, BLOCKSIZE);
-        if (read != BLOCKSIZE) {
-            break;
-        }
-        bool all_zeroes = true;
-        for (int i = 0; i < BLOCKSIZE; i++) {
-            if (b.buffer[i]) {
-                all_zeroes = false;
-                break;
-            }
-        }
-        if (all_zeroes) {
-            break;
-        }
-
-
-        std::string filename;
-
-        if (strcmp(b.header.name, "././@LongLink") == 0) {
-            // GNU long filename
-            int size = octal_to_int(b.header.size, 12);
-            int num_blocks = (size + 511) / 512;
-
-            while (num_blocks--) {
-                char name[BLOCKSIZE + 1];
-                name[BLOCKSIZE] = 0;
-                int read = file->Read(name, BLOCKSIZE);
-                if (read != BLOCKSIZE) {
-                    break;
-                }
-
-                filename += name;
-            }
-
-            // now that we've read the filename, read the real thing
-            int read = file->Read(&b, BLOCKSIZE);
-            if (read != BLOCKSIZE) {
-                break;
-            }
-
-        } else {
-            // build filename from prefix + name
-            filename = b.header.prefix;
-            if (filename.length()) {
-                filename += "/";
-            }
-            filename += b.header.name;
-        }
-
-        // now try to open output file
-        if (b.header.typeflag == '0' ||
-            b.header.typeflag == '\0') {
-
-            FILE* ofile = OpenOutputFile(filename.c_str());
-            if (!ofile) {
-                MessageBox(NULL, filename.c_str(), "Couldn't open file", MB_OK);
-            }
-
-            int size = octal_to_int(b.header.size, 12);
-            int num_blocks = (size + 511) / 512;
-            while (num_blocks--) {
-                char data[BLOCKSIZE];
-                int read = file->Read(data, BLOCKSIZE);
-                if (read != BLOCKSIZE) {
-                    return;
-                }
-
-                if (ofile) {
-                    if (size >= BLOCKSIZE) {
-                        fwrite(data, 1, BLOCKSIZE, ofile);
-                    } else {
-                        fwrite(data, 1, size, ofile);
-                    }
-                }
-
-                size -= BLOCKSIZE;
-            }
-
-            if (ofile) {
-                fclose(ofile);
-            }
-        }
-    }
-}
-
-////////////////////////////////////////////////////////////////////////////////
-
 // UN = User interface Notification
 static const int UN_YESNOCANCEL = WM_APP + 0;
 static const int UN_YESNO       = WM_APP + 1;
@@ -738,46 +492,64 @@ ShellExtension::WorkerThread(LPVOID arg)
     std::list<std::string>::iterator i = p->paths.begin();
     for (; i != p->paths.end(); ++i) {
 
+        bool keep_going = false;
+
         switch (p->command) {
             case COMPRESS_TARBALL: {
-                CreateArchive(i->c_str(), OpenANSIOutputFile);
+                keep_going = CreateArchive(
+                    n,
+                    i->c_str(),
+                    ".tar",
+                    OpenANSIOutputFile);
             } break;
 
             case COMPRESS_BZBALL: {
-                CreateArchive(i->c_str(), OpenBzip2OutputFile);
+                keep_going = CreateArchive(
+                    n,
+                    i->c_str(),
+                    ".tar.bz2",
+                    OpenBzip2OutputFile);
             } break;
 
             case COMPRESS_GZBALL: {
-                CreateArchive(i->c_str(), OpenGzipOutputFile);
+                keep_going = CreateArchive(
+                    n,
+                    i->c_str(),
+                    ".tar.gz",
+                    OpenGzipOutputFile);
             } break;
 
             case COMPRESS_BZFILE: {
-                TransformFile(n, i->c_str(), Bzip2Transform);
+                keep_going = TransformFile(n, i->c_str(), Bzip2Transform);
             } break;
 
             case COMPRESS_GZFILE: {
-                TransformFile(n, i->c_str(), GzipTransform);
+                keep_going = TransformFile(n, i->c_str(), GzipTransform);
             } break;
 
             case DECOMPRESS_TARBALL: {
-                ExtractArchive(i->c_str(), OpenANSIInputFile);
+                keep_going = ExtractArchive(n, i->c_str(), OpenANSIInputFile);
             } break;
 
             case DECOMPRESS_BZBALL: {
-                ExtractArchive(i->c_str(), OpenBzip2InputFile);
+                keep_going = ExtractArchive(n, i->c_str(), OpenBzip2InputFile);
             } break;
 
             case DECOMPRESS_GZBALL: {
-                ExtractArchive(i->c_str(), OpenGzipInputFile);
+                keep_going = ExtractArchive(n, i->c_str(), OpenGzipInputFile);
             } break;
 
             case DECOMPRESS_BZFILE: {
-                TransformFile(n, i->c_str(), Unbzip2Transform);
+                keep_going = TransformFile(n, i->c_str(), Unbzip2Transform);
             } break;
 
             case DECOMPRESS_GZFILE: {
-                TransformFile(n, i->c_str(), UngzipTransform);
+                keep_going = TransformFile(n, i->c_str(), UngzipTransform);
             } break;
+        }
+
+        if (!keep_going) {
+            break;
         }
     }
 

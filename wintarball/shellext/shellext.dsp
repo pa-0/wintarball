@@ -122,6 +122,14 @@ SOURCE=..\common\Configuration.hpp
 # End Source File
 # Begin Source File
 
+SOURCE=.\CreateArchive.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\CreateArchive.hpp
+# End Source File
+# Begin Source File
+
 SOURCE=.\DirectoryState.hpp
 # End Source File
 # Begin Source File
@@ -131,6 +139,14 @@ SOURCE=.\ExtensionCompare.cpp
 # Begin Source File
 
 SOURCE=.\ExtensionCompare.hpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\ExtractArchive.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\ExtractArchive.hpp
 # End Source File
 # Begin Source File
 
@@ -159,6 +175,10 @@ SOURCE=.\ShellExtension.cpp
 # Begin Source File
 
 SOURCE=.\ShellExtension.hpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\Tar.hpp
 # End Source File
 # Begin Source File
 

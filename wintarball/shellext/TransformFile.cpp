@@ -50,18 +50,6 @@ void UngzipFilenameTransform(
 
 ////////////////////////////////////////////////////////////////////////////////
 
-static bool exists(const char* filename) {
-    FILE* f = fopen(filename, "rb");
-    if (f) {
-        fclose(f);
-        return true;
-    } else {
-        return false;
-    }
-}
-
-////////////////////////////////////////////////////////////////////////////////
-
 static bool DoTransformFile(
     IUINotification* notify,
     const char* filename,
@@ -80,7 +68,7 @@ static bool DoTransformFile(
     // calculate the output filename
     std::string output_name;
     fn_transform(output_name, filename);
-    if (exists(output_name.c_str())) {
+    if (file_exists(output_name.c_str())) {
         std::string message =
             "File '" + output_name + "' already exists.  Overwrite?";
         UIResult r = notify->YesNoCancel(message.c_str(), UI_WARNING);

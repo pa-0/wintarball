@@ -7,6 +7,11 @@
 #include <bzlib.h>
 
 
+// MISCELLANEOUS
+
+extern bool file_exists(const char* filename);
+
+
 // INTERFACES
 
 class IInputFile {
@@ -18,7 +23,7 @@ public:
 class IOutputFile {
 public:
     virtual ~IOutputFile() { }  // close
-    virtual unsigned Write(void* buffer, unsigned size) = 0;
+    virtual unsigned Write(const void* buffer, unsigned size) = 0;
 };
 
 
