@@ -113,7 +113,7 @@ public:
     }
 
     unsigned Write(const void* buffer, unsigned size) {
-        // gzwrite's got an incorrect parameter type (do to the
+        // gzwrite's got an incorrect parameter type (due to the
         // voidp typedef, the pointer is const, not the data)
         return gzwrite(m_file, (const voidp)buffer, size);
     }

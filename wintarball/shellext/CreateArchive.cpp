@@ -60,7 +60,7 @@ static void BuildFileList(
 
         do {
 
-            if (ffd.dwFileAttributes == FILE_ATTRIBUTE_DIRECTORY) {
+            if (ffd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) {
                 if (strcmp(ffd.cFileName, ".") != 0 &&
                     strcmp(ffd.cFileName, "..") != 0) {
 
