@@ -1,0 +1,160 @@
+//Microsoft Developer Studio generated resource script.
+//
+#include "resource.h"
+
+#define APSTUDIO_READONLY_SYMBOLS
+/////////////////////////////////////////////////////////////////////////////
+//
+// Generated from the TEXTINCLUDE 2 resource.
+//
+#include "afxres.h"
+
+/////////////////////////////////////////////////////////////////////////////
+#undef APSTUDIO_READONLY_SYMBOLS
+
+/////////////////////////////////////////////////////////////////////////////
+// English (U.S.) resources
+
+#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_ENU)
+#ifdef _WIN32
+LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_US
+#pragma code_page(1252)
+#endif //_WIN32
+
+#ifdef APSTUDIO_INVOKED
+/////////////////////////////////////////////////////////////////////////////
+//
+// TEXTINCLUDE
+//
+
+1 TEXTINCLUDE DISCARDABLE 
+BEGIN
+    "resource.h\0"
+END
+
+2 TEXTINCLUDE DISCARDABLE 
+BEGIN
+    "#include ""afxres.h""\r\n"
+    "\0"
+END
+
+3 TEXTINCLUDE DISCARDABLE 
+BEGIN
+    "\r\n"
+    "\0"
+END
+
+#endif    // APSTUDIO_INVOKED
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Icon
+//
+
+// Icon with lowest ID value placed first to ensure application icon
+// remains consistent on all systems.
+IDI_CPL                 ICON    DISCARDABLE     "cpl.ico"
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Dialog
+//
+
+IDD_PAGE_BZIP2 DIALOG DISCARDABLE  0, 0, 240, 161
+STYLE WS_CHILD | WS_DISABLED | WS_CAPTION
+CAPTION "bzip2"
+FONT 8, "MS Sans Serif"
+BEGIN
+    CONTROL         "Use less memory (slower)",IDC_USE_LESS_MEMORY,"Button",
+                    BS_AUTOCHECKBOX | WS_TABSTOP,72,102,95,10
+    LTEXT           "Block size",IDC_STATIC,31,53,33,8
+    CONTROL         "Slider1",IDC_BLOCK_SIZE,"msctls_trackbar32",TBS_NOTICKS | 
+                    WS_TABSTOP,75,49,132,15
+    LTEXT           "size",IDC_BLOCK_SIZE_LABEL,120,65,28,8
+END
+
+IDD_PAGE_GZIP DIALOG DISCARDABLE  0, 0, 240, 161
+STYLE WS_CHILD | WS_DISABLED | WS_CAPTION
+CAPTION "gzip"
+FONT 8, "MS Sans Serif"
+BEGIN
+    LTEXT           "Compression Level",IDC_STATIC,31,70,60,8
+    CONTROL         "Slider1",IDC_COMPRESSION_LEVEL,"msctls_trackbar32",
+                    TBS_NOTICKS | WS_TABSTOP,107,66,100,15
+    LTEXT           "level",IDC_COMPRESSION_LEVEL_LABEL,144,84,68,8
+END
+
+IDD_PAGE_GENERAL DIALOG DISCARDABLE  0, 0, 240, 161
+STYLE WS_CHILD | WS_DISABLED | WS_CAPTION
+CAPTION "General"
+FONT 8, "MS Sans Serif"
+BEGIN
+    CTEXT           "WinTarBall 1.0",IDC_STATIC,8,40,224,8
+    CTEXT           "Chad Austin (c) 2000-2001",IDC_STATIC,8,50,224,8
+    CTEXT           "aegis@aegisknight.org",IDC_STATIC,8,72,224,8
+    CTEXT           "http://aegisknight.org",IDC_STATIC,8,84,224,8
+END
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// DESIGNINFO
+//
+
+#ifdef APSTUDIO_INVOKED
+GUIDELINES DESIGNINFO DISCARDABLE 
+BEGIN
+    IDD_PAGE_BZIP2, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 233
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 154
+    END
+
+    IDD_PAGE_GZIP, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 233
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 154
+    END
+
+    IDD_PAGE_GENERAL, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 233
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 154
+    END
+END
+#endif    // APSTUDIO_INVOKED
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// String Table
+//
+
+STRINGTABLE DISCARDABLE 
+BEGIN
+    IDS_NAME                "WinTarBall"
+    IDS_INFO                "Configures compression method and level of WinTarBall"
+END
+
+#endif    // English (U.S.) resources
+/////////////////////////////////////////////////////////////////////////////
+
+
+
+#ifndef APSTUDIO_INVOKED
+/////////////////////////////////////////////////////////////////////////////
+//
+// Generated from the TEXTINCLUDE 3 resource.
+//
+
+
+/////////////////////////////////////////////////////////////////////////////
+#endif    // not APSTUDIO_INVOKED
+
