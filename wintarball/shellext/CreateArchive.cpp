@@ -250,7 +250,7 @@ bool CreateArchive(
 
     // write the blank block
     memset(&b, 0, sizeof(b));
-    out->Write(b.buffer, 1, TAR_BLOCK_SIZE);
+    out->Write(b.buffer, TAR_BLOCK_SIZE);
 
     // if the user cancelled, try to remove the file
     if (cancelled) {
